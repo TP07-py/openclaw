@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import AdminUser
+from app.dependencies import AdminUser, CurrentUser
 from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.auth_service import hash_password
@@ -28,7 +28,7 @@ async def list_users(
 @router.get("/{user_id}", response_model=UserRead)
 async def get_user(
     user_id: uuid.UUID,
-    _: AdminUser,
+    _: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
     return await get_user_or_404(session, user_id)

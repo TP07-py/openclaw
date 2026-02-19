@@ -3,12 +3,13 @@ import { useParams, Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { getCase, updateCase, Case } from '../api/cases'
+import { getUser, UserPublic } from '../api/users'
 import { useAuthStore } from '../store/auth'
 import ChatWindow from '../components/ChatWindow'
 import DocumentPanel from '../components/DocumentPanel'
 import Spinner from '../components/Spinner'
 
-type Tab = 'chat' | 'documents'
+type Tab = 'chat' | 'documents' | 'details'
 
 const statusStyles: Record<string, string> = {
   open: 'bg-green-500/20 text-green-400',
@@ -20,6 +21,42 @@ const statusLabel: Record<string, string> = {
   open: 'Open',
   in_progress: 'In Progress',
   closed: 'Closed',
+}
+
+const roleLabel: Record<string, string> = {
+  admin: 'Admin',
+  lawyer: 'Lawyer',
+  client: 'Client',
+}
+
+function UserCard({ userId, label }: { userId: string | null; label: string }) {
+  const { data: user, isLoading } = useQuery<UserPublic>({
+    queryKey: ['user', userId],
+    queryFn: () => getUser(userId!),
+    enabled: !!userId,
+  })
+
+  return (
+    <div className="rounded-lg bg-gray-700/50 px-4 py-3">
+      <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</p>
+      {!userId && <p className="text-sm text-gray-500 italic">Not assigned</p>}
+      {userId && isLoading && <Spinner size="sm" />}
+      {userId && user && (
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-600/30 text-indigo-400 text-xs font-bold">
+            {user.full_name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white truncate">{user.full_name}</p>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+          <span className="ml-auto shrink-0 rounded-full bg-indigo-600/20 text-indigo-400 px-2 py-0.5 text-xs font-medium">
+            {roleLabel[user.role] ?? user.role}
+          </span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function CaseDetail() {
@@ -64,6 +101,12 @@ export default function CaseDetail() {
     )
   }
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'chat', label: 'Chat' },
+    { key: 'documents', label: 'Documents' },
+    { key: 'details', label: 'Details' },
+  ]
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header */}
@@ -100,27 +143,73 @@ export default function CaseDetail() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-700/50 px-6">
-        {(['chat', 'documents'] as Tab[]).map((tab) => (
+        {tabs.map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
             className={`mr-1 px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 ${
-              activeTab === tab
+              activeTab === tab.key
                 ? 'border-indigo-500 text-indigo-400'
                 : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >
-            {tab === 'chat' ? 'Chat' : 'Documents'}
+            {tab.label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {activeTab === 'chat' ? (
-          <ChatWindow caseId={id} />
-        ) : (
-          <DocumentPanel caseId={id} />
+        {activeTab === 'chat' && <ChatWindow caseId={id} />}
+        {activeTab === 'documents' && <DocumentPanel caseId={id} />}
+        {activeTab === 'details' && (
+          <div className="overflow-y-auto p-6 space-y-6">
+            {/* Case info */}
+            <div className="rounded-xl bg-gray-800 border border-gray-700/50 p-5 space-y-4">
+              <h2 className="text-sm font-semibold text-white">Case Information</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</p>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[caseData.status] ?? 'bg-gray-700 text-gray-400'}`}>
+                    {statusLabel[caseData.status] ?? caseData.status}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Created</p>
+                  <p className="text-sm text-white">
+                    {new Date(caseData.created_at).toLocaleDateString(undefined, {
+                      year: 'numeric', month: 'short', day: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Last updated</p>
+                  <p className="text-sm text-white">
+                    {new Date(caseData.updated_at).toLocaleDateString(undefined, {
+                      year: 'numeric', month: 'short', day: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Case ID</p>
+                  <p className="text-xs text-gray-500 font-mono truncate">{caseData.id}</p>
+                </div>
+              </div>
+              {caseData.description && (
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</p>
+                  <p className="text-sm text-gray-300">{caseData.description}</p>
+                </div>
+              )}
+            </div>
+
+            {/* People */}
+            <div className="rounded-xl bg-gray-800 border border-gray-700/50 p-5 space-y-3">
+              <h2 className="text-sm font-semibold text-white">People</h2>
+              <UserCard userId={caseData.lawyer_id} label="Lawyer" />
+              <UserCard userId={caseData.client_id} label="Client" />
+            </div>
+          </div>
         )}
       </div>
     </div>
