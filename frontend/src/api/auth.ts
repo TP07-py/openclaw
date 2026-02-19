@@ -16,6 +16,7 @@ export interface User {
   id: string
   email: string
   full_name: string
+  role: 'admin' | 'lawyer' | 'client'
   is_active: boolean
 }
 
@@ -26,6 +27,7 @@ export interface TokenResponse {
 
 export interface UpdateMePayload {
   full_name?: string
+  email?: string
   password?: string
 }
 

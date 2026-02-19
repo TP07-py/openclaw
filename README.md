@@ -1,15 +1,18 @@
 # OpenClaw — Legal AI Assistant
 
-A full-stack legal AI assistant that lets lawyers manage cases, upload documents, and chat with Claude to get instant legal analysis.
+A full-stack legal AI assistant for anyone — lawyers and members of the public alike — to manage legal cases, upload documents, and chat with Claude for instant legal analysis.
 
 ![Stack](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat&logo=fastapi) ![Stack](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react) ![Stack](https://img.shields.io/badge/Claude-Anthropic-blueviolet?style=flat)
 
 ## Features
 
-- **Case management** — create and organize legal cases
-- **AI chat** — ask legal questions per case, powered by Claude
+- **Dashboard** — case overview with stats (total, open, in progress, closed)
+- **Case management** — any registered user can create and manage cases
+- **AI chat** — ask legal questions per case, powered by Claude; full history persisted per case
 - **Document analysis** — upload PDFs/DOCX/TXT and get AI-generated summaries and key points
-- **Auth** — JWT-based login with lawyer/client roles
+- **Case status** — lawyers and admins can update case status (Open → In Progress → Closed)
+- **Profile** — update your name, email, and password from the app
+- **Auth** — JWT-based login; all new accounts default to the client role
 - **Dark UI** — modern dark theme with indigo accents
 
 ## Tech Stack
@@ -37,7 +40,7 @@ A full-stack legal AI assistant that lets lawyers manage cases, upload documents
 │   └── src/
 │       ├── api/           # Axios API layer
 │       ├── components/    # UI components
-│       ├── pages/         # Login, Register, CaseDetail
+│       ├── pages/         # Login, Register, Dashboard, CaseDetail, Profile
 │       └── store/         # Zustand auth store
 └── docker-compose.yml
 ```
@@ -96,10 +99,12 @@ Open **http://localhost:5173**
 
 ## Usage
 
-1. **Register** — choose the **Lawyer** role (only lawyers can create cases)
-2. **Create a case** — click "+ New Case" in the sidebar
-3. **Chat** — ask legal questions in the Chat tab; Claude responds with markdown-formatted analysis
-4. **Documents** — upload a PDF/DOCX/TXT in the Documents tab, then click **Analyze** to get a summary and key points
+1. **Register** — create an account (name, email, password — no role selector needed)
+2. **Dashboard** — see all your cases and stats at a glance
+3. **Create a case** — click "+ New Case" in the sidebar
+4. **Chat** — ask legal questions in the Chat tab; Claude responds with markdown-formatted analysis
+5. **Documents** — upload a PDF/DOCX/TXT in the Documents tab, then click **Analyze** to get a summary and key points
+6. **Profile** — click your name in the sidebar footer to update account details
 
 ## API
 
@@ -109,7 +114,7 @@ Key endpoints:
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/auth/register` | Register (lawyer or client) |
+| `POST` | `/auth/register` | Register (defaults to client role) |
 | `POST` | `/auth/login` | Get JWT token |
 | `GET/POST` | `/cases` | List / create cases |
 | `POST` | `/cases/{id}/chat` | Send message, get AI reply |

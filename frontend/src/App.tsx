@@ -1,16 +1,13 @@
-import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
-import { useQuery } from '@tanstack/react-query'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
 import CaseDetail from './pages/CaseDetail'
-import { useAuthStore } from './store/auth'
-import { listCases } from './api/cases'
-import Spinner from './components/Spinner'
+import Profile from './pages/Profile'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,46 +18,6 @@ const queryClient = new QueryClient({
   },
 })
 
-function HomeRedirect() {
-  const token = useAuthStore((s) => s.token)
-  const navigate = useNavigate()
-
-  const { data: cases, isLoading } = useQuery({
-    queryKey: ['cases'],
-    queryFn: listCases,
-    enabled: !!token,
-  })
-
-  useEffect(() => {
-    if (!isLoading && cases) {
-      if (cases.length > 0) {
-        navigate(`/cases/${cases[0].id}`, { replace: true })
-      }
-    }
-  }, [cases, isLoading, navigate])
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    )
-  }
-
-  if (!cases || cases.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center text-gray-500">
-        <div className="text-center">
-          <p className="text-lg font-medium text-white">Welcome to OpenClaw</p>
-          <p className="text-sm mt-1">Create your first case using the sidebar</p>
-        </div>
-      </div>
-    )
-  }
-
-  return null
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -70,8 +27,10 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<HomeRedirect />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/cases/:id" element={<CaseDetail />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

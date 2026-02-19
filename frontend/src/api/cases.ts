@@ -4,7 +4,9 @@ export interface Case {
   id: string
   title: string
   description: string | null
-  status: string
+  status: 'open' | 'in_progress' | 'closed'
+  lawyer_id: string | null
+  client_id: string | null
   created_at: string
   updated_at: string
 }
@@ -12,6 +14,12 @@ export interface Case {
 export interface CreateCasePayload {
   title: string
   description?: string
+}
+
+export interface UpdateCasePayload {
+  title?: string
+  description?: string
+  status?: 'open' | 'in_progress' | 'closed'
 }
 
 export const listCases = () =>
@@ -22,6 +30,9 @@ export const createCase = (payload: CreateCasePayload) =>
 
 export const getCase = (id: string) =>
   client.get<Case>(`/cases/${id}`).then((r) => r.data)
+
+export const updateCase = (id: string, payload: UpdateCasePayload) =>
+  client.put<Case>(`/cases/${id}`, payload).then((r) => r.data)
 
 export const deleteCase = (id: string) =>
   client.delete(`/cases/${id}`).then((r) => r.data)
