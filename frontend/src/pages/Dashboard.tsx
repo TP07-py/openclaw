@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { listCases, Case } from '../api/cases'
@@ -16,9 +17,12 @@ const statusLabel: Record<string, string> = {
   closed: 'Closed',
 }
 
+const PAGE_SIZE = 10
+
 export default function Dashboard() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
+  const [page, setPage] = useState(1)
 
   const { data: cases, isLoading } = useQuery<Case[]>({
     queryKey: ['cases'],
@@ -31,6 +35,9 @@ export default function Dashboard() {
     in_progress: cases?.filter((c) => c.status === 'in_progress').length ?? 0,
     closed: cases?.filter((c) => c.status === 'closed').length ?? 0,
   }
+
+  const totalPages = Math.ceil((cases?.length ?? 0) / PAGE_SIZE)
+  const paginatedCases = cases?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -72,7 +79,7 @@ export default function Dashboard() {
           </p>
         )}
 
-        {cases?.map((c) => (
+        {paginatedCases?.map((c) => (
           <button
             key={c.id}
             onClick={() => navigate(`/cases/${c.id}`)}
@@ -93,6 +100,29 @@ export default function Dashboard() {
             </span>
           </button>
         ))}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-700/50">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="text-xs text-gray-400 hover:text-white disabled:opacity-40 transition-colors"
+            >
+              ← Previous
+            </button>
+            <span className="text-xs text-gray-500">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="text-xs text-gray-400 hover:text-white disabled:opacity-40 transition-colors"
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

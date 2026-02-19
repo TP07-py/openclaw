@@ -29,5 +29,10 @@ export const analyzeDocument = (caseId: string, docId: string) =>
     .post<Document>(`/cases/${caseId}/documents/${docId}/analyze`)
     .then((r) => r.data)
 
+export const downloadDocument = (caseId: string, docId: string) =>
+  client
+    .get<Blob>(`/cases/${caseId}/documents/${docId}/download`, { responseType: 'blob' })
+    .then((r) => r.data)
+
 export const deleteDocument = (caseId: string, docId: string) =>
   client.delete(`/cases/${caseId}/documents/${docId}`).then((r) => r.data)

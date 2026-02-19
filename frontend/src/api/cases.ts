@@ -34,5 +34,13 @@ export const getCase = (id: string) =>
 export const updateCase = (id: string, payload: UpdateCasePayload) =>
   client.put<Case>(`/cases/${id}`, payload).then((r) => r.data)
 
+export interface AssignCasePayload {
+  lawyer_id?: string | null
+  client_id?: string | null
+}
+
+export const assignCase = (id: string, payload: AssignCasePayload) =>
+  client.post<Case>(`/cases/${id}/assign`, payload).then((r) => r.data)
+
 export const deleteCase = (id: string) =>
   client.delete(`/cases/${id}`).then((r) => r.data)

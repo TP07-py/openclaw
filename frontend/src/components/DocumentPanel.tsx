@@ -5,6 +5,7 @@ import {
   listDocuments,
   uploadDocument,
   analyzeDocument,
+  downloadDocument,
   deleteDocument,
   Document,
 } from '../api/documents'
@@ -35,6 +36,7 @@ function parseKeyPoints(raw: string | null): string[] {
 export default function DocumentPanel({ caseId }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const qc = useQueryClient()
 
   const { data: docs, isLoading } = useQuery<Document[]>({
@@ -68,6 +70,23 @@ export default function DocumentPanel({ caseId }: Props) {
     },
     onError: () => toast.error('Delete failed'),
   })
+
+  const handleDownload = async (doc: Document) => {
+    setDownloadingId(doc.id)
+    try {
+      const blob = await downloadDocument(caseId, doc.id)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = doc.original_filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Download failed')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -162,6 +181,24 @@ export default function DocumentPanel({ caseId }: Props) {
                     {expandedId === doc.id ? 'Hide' : 'View'}
                   </button>
                 )}
+
+                {/* Download button */}
+                <button
+                  onClick={() => handleDownload(doc)}
+                  disabled={downloadingId === doc.id}
+                  title="Download"
+                  className="text-gray-500 hover:text-indigo-400 transition-colors disabled:opacity-50"
+                >
+                  {downloadingId === doc.id ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  )}
+                </button>
+
                 <button
                   onClick={() => deleteMutation.mutate(doc.id)}
                   className="text-gray-500 hover:text-red-400 transition-colors"

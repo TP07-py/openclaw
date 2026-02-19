@@ -9,12 +9,20 @@ interface Props {
   caseId: string
 }
 
+const PAGE_SIZE = 30
+
 export default function ChatWindow({ caseId }: Props) {
   const [input, setInput] = useState('')
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([])
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const qc = useQueryClient()
+
+  // Reset pagination when switching cases
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE)
+  }, [caseId])
 
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: ['messages', caseId],
@@ -22,15 +30,18 @@ export default function ChatWindow({ caseId }: Props) {
   })
 
   const allMessages = [...(messages ?? []), ...optimisticMessages]
+  const hasMore = allMessages.length > displayCount
+  const visibleMessages = allMessages.slice(Math.max(0, allMessages.length - displayCount))
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [allMessages.length])
+  }, [visibleMessages.length])
 
   const mutation = useMutation({
     mutationFn: (content: string) => sendMessage(caseId, { content }),
     onSuccess: () => {
       setOptimisticMessages([])
+      setDisplayCount((c) => c + 2) // make room for new user + AI message
       qc.invalidateQueries({ queryKey: ['messages', caseId] })
     },
     onError: () => {
@@ -52,7 +63,6 @@ export default function ChatWindow({ caseId }: Props) {
     }
     setOptimisticMessages([optimistic])
 
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = '36px'
     }
@@ -85,6 +95,19 @@ export default function ChatWindow({ caseId }: Props) {
             <Spinner />
           </div>
         )}
+
+        {/* Load earlier button */}
+        {!isLoading && hasMore && (
+          <div className="flex justify-center py-2 mb-2">
+            <button
+              onClick={() => setDisplayCount((c) => c + PAGE_SIZE)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              ↑ Load earlier messages
+            </button>
+          </div>
+        )}
+
         {!isLoading && allMessages.length === 0 && (
           <div className="flex h-full items-center justify-center text-gray-500">
             <div className="text-center">
@@ -93,9 +116,11 @@ export default function ChatWindow({ caseId }: Props) {
             </div>
           </div>
         )}
-        {allMessages.map((msg) => (
+
+        {visibleMessages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
+
         {mutation.isPending && (
           <div className="flex justify-start mb-3">
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-700 text-xs font-bold text-white mr-2 mt-1">
