@@ -26,11 +26,11 @@ async def create_case(
     current_user: CurrentUser,
     session: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if current_user.role not in (UserRole.admin, UserRole.lawyer):
-        raise forbidden("Only admins and lawyers can create cases")
     case = Case(**body.model_dump())
     if current_user.role == UserRole.lawyer:
         case.lawyer_id = current_user.id
+    elif current_user.role == UserRole.client:
+        case.client_id = current_user.id
     session.add(case)
     await session.flush()
     await session.refresh(case)

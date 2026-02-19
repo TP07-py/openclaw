@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true)
     try {
       const tokenData = await login({ username: email, password })
-      const user = await getMe()
+      const user = await getMe(tokenData.access_token)
       setAuth(tokenData.access_token, user)
       navigate('/')
     } catch {

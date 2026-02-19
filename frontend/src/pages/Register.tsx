@@ -9,7 +9,6 @@ export default function Register() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'lawyer' | 'client'>('lawyer')
   const [loading, setLoading] = useState(false)
   const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
@@ -22,9 +21,9 @@ export default function Register() {
     }
     setLoading(true)
     try {
-      await register({ email, password, full_name: fullName, role })
+      await register({ email, password, full_name: fullName })
       const tokenData = await login({ username: email, password })
-      const user = await getMe()
+      const user = await getMe(tokenData.access_token)
       setAuth(tokenData.access_token, user)
       toast.success('Account created!')
       navigate('/')
@@ -74,29 +73,6 @@ export default function Register() {
               className="w-full rounded-lg bg-gray-700 px-3 py-2 text-white placeholder-gray-500 outline-none ring-1 ring-gray-600 focus:ring-indigo-500"
               placeholder="you@example.com"
             />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm text-gray-400">I am a</label>
-            <div className="flex gap-2">
-              {(['lawyer', 'client'] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRole(r)}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors capitalize ${
-                    role === r
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-700 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-            {role === 'client' && (
-              <p className="mt-1 text-xs text-yellow-500">Clients cannot create cases — only lawyers can.</p>
-            )}
           </div>
 
           <div>

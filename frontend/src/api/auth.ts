@@ -43,8 +43,10 @@ export const login = (payload: LoginPayload) => {
     .then((r) => r.data)
 }
 
-export const getMe = () =>
-  client.get<User>('/auth/me').then((r) => r.data)
+export const getMe = (token?: string) =>
+  client
+    .get<User>('/auth/me', token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
+    .then((r) => r.data)
 
 export const updateMe = (payload: UpdateMePayload) =>
   client.put<User>('/auth/me', payload).then((r) => r.data)
