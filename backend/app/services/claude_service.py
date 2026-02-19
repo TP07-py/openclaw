@@ -72,8 +72,19 @@ def _sync_chat(messages: list[dict]) -> str:
         )
 
         if response.stop_reason == "tool_use":
-            # Append Claude's turn
-            current_messages.append({"role": "assistant", "content": response.content})
+            # Serialize content blocks to plain dicts for the next API call
+            content_dicts = []
+            for block in response.content:
+                if block.type == "text":
+                    content_dicts.append({"type": "text", "text": block.text})
+                elif block.type == "tool_use":
+                    content_dicts.append({
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input": block.input,
+                    })
+            current_messages.append({"role": "assistant", "content": content_dicts})
 
             # Execute each tool call and collect results
             tool_results = []
