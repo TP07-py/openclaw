@@ -6,9 +6,32 @@ import anthropic
 from app.config import settings
 
 LEGAL_SYSTEM_PROMPT = """You are an expert legal AI assistant helping lawyers and clients
-understand legal documents, cases, and related matters. You provide clear, accurate, and
-professional analysis. Always remind users to consult a licensed attorney for formal legal advice.
+understand legal documents, cases, and related matters. You have access to a web search tool
+— use it whenever you need to verify current statutes, look up recent case law, find
+jurisdiction-specific rules, or check any legal information that may have changed recently.
+Always cite your sources (include URLs) when you use search results.
+Provide clear, accurate, and professional analysis.
+Always remind users to consult a licensed attorney for formal legal advice.
 Be concise and structured in your responses."""
+
+WEB_SEARCH_TOOL = {
+    "name": "web_search",
+    "description": (
+        "Search the internet for current legal information: statutes, regulations, "
+        "case law, court decisions, legal news, or any other information needed to "
+        "answer legal questions accurately and up-to-date."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Search query to find relevant legal information",
+            }
+        },
+        "required": ["query"],
+    },
+}
 
 _client: anthropic.Anthropic | None = None
 
@@ -20,15 +43,59 @@ def _get_client() -> anthropic.Anthropic:
     return _client
 
 
+def _execute_web_search(query: str) -> str:
+    try:
+        from duckduckgo_search import DDGS
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=5))
+        if not results:
+            return "No results found for this query."
+        parts = []
+        for r in results:
+            parts.append(f"Title: {r['title']}\nSummary: {r['body']}\nURL: {r['href']}")
+        return "\n\n---\n\n".join(parts)
+    except Exception as exc:
+        return f"Search error: {exc}"
+
+
 def _sync_chat(messages: list[dict]) -> str:
     client = _get_client()
-    response = client.messages.create(
-        model="claude-opus-4-6",
-        max_tokens=2048,
-        system=LEGAL_SYSTEM_PROMPT,
-        messages=messages,
-    )
-    return response.content[0].text
+    current_messages = list(messages)
+
+    for _ in range(10):  # cap at 10 iterations
+        response = client.messages.create(
+            model="claude-opus-4-6",
+            max_tokens=4096,
+            system=LEGAL_SYSTEM_PROMPT,
+            tools=[WEB_SEARCH_TOOL],
+            messages=current_messages,
+        )
+
+        if response.stop_reason == "tool_use":
+            # Append Claude's turn
+            current_messages.append({"role": "assistant", "content": response.content})
+
+            # Execute each tool call and collect results
+            tool_results = []
+            for block in response.content:
+                if block.type == "tool_use":
+                    result = _execute_web_search(block.input["query"])
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": result,
+                    })
+
+            current_messages.append({"role": "user", "content": tool_results})
+            continue  # let Claude process the results
+
+        # stop_reason == "end_turn" — extract final text
+        for block in response.content:
+            if hasattr(block, "text"):
+                return block.text
+        break
+
+    return "Unable to generate a response."
 
 
 def _sync_analyze_document(text: str) -> dict:
@@ -48,7 +115,6 @@ def _sync_analyze_document(text: str) -> dict:
     )
     import json
     raw = response.content[0].text.strip()
-    # Strip markdown code fences if present
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
