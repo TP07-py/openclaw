@@ -27,7 +27,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ token: null, user: null }),
     }),
     {
-      name: 'openclaw-auth',
+      name: 'easylaw-auth',
     }
   )
 )

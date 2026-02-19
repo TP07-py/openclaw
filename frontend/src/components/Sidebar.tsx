@@ -28,9 +28,9 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-700/50">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-sm">
-            OC
+            EL
           </div>
-          <span className="font-semibold text-white">OpenClaw</span>
+          <span className="font-semibold text-white">EasyLAW</span>
         </div>
 
         {/* New Case button */}
